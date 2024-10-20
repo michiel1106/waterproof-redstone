@@ -2,6 +2,9 @@ package bikerboys.waterproofredstone.block.customblock;
 
 import bikerboys.waterproofredstone.block.ModBlocks;
 import net.minecraft.block.*;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.fluid.Fluids;
+import net.minecraft.state.property.*;
 import net.minecraft.util.math.Direction;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,10 +21,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.particle.DustParticleEffect;
 import net.minecraft.state.StateManager;
-import net.minecraft.state.property.EnumProperty;
-import net.minecraft.state.property.IntProperty;
-import net.minecraft.state.property.Properties;
-import net.minecraft.state.property.Property;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.BlockMirror;
 import net.minecraft.util.BlockRotation;
@@ -41,7 +40,9 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 import net.minecraft.world.WorldView;
 
-public class WaterproofRedstoneWire extends Block {
+public class WaterproofRedstoneWire extends Block implements Waterloggable {
+    public static final BooleanProperty WATERLOGGED;
+
     public static final EnumProperty<WireConnection> WIRE_CONNECTION_NORTH;
     public static final EnumProperty<WireConnection> WIRE_CONNECTION_EAST;
     public static final EnumProperty<WireConnection> WIRE_CONNECTION_SOUTH;
@@ -62,10 +63,10 @@ public class WaterproofRedstoneWire extends Block {
     private final BlockState dotState;
     private boolean wiresGivePower = true;
 
-    public WaterproofRedstoneWire(AbstractBlock.Settings settings) {
+    public WaterproofRedstoneWire(Settings settings) {
         super(settings);
-        this.setDefaultState((BlockState)((BlockState)((BlockState)((BlockState)((BlockState)((BlockState)this.stateManager.getDefaultState()).with(WIRE_CONNECTION_NORTH, WireConnection.NONE)).with(WIRE_CONNECTION_EAST, WireConnection.NONE)).with(WIRE_CONNECTION_SOUTH, WireConnection.NONE)).with(WIRE_CONNECTION_WEST, WireConnection.NONE)).with(POWER, 0));
-        this.dotState = (BlockState)((BlockState)((BlockState)((BlockState)this.getDefaultState().with(WIRE_CONNECTION_NORTH, WireConnection.SIDE)).with(WIRE_CONNECTION_EAST, WireConnection.SIDE)).with(WIRE_CONNECTION_SOUTH, WireConnection.SIDE)).with(WIRE_CONNECTION_WEST, WireConnection.SIDE);
+        this.setDefaultState((BlockState)((BlockState)((BlockState)((BlockState)((BlockState)((BlockState)this.stateManager.getDefaultState()).with(WIRE_CONNECTION_NORTH, WireConnection.NONE)).with(WIRE_CONNECTION_EAST, WireConnection.NONE)).with(WIRE_CONNECTION_SOUTH, WireConnection.NONE)).with(WIRE_CONNECTION_WEST, WireConnection.NONE)).with(POWER, 0).with(WATERLOGGED, false));
+        this.dotState = (BlockState)((BlockState)((BlockState)((BlockState)this.getDefaultState().with(WIRE_CONNECTION_NORTH, WireConnection.SIDE)).with(WIRE_CONNECTION_EAST, WireConnection.SIDE)).with(WIRE_CONNECTION_SOUTH, WireConnection.SIDE)).with(WIRE_CONNECTION_WEST, WireConnection.SIDE).with(WATERLOGGED, false);
         UnmodifiableIterator var2 = this.getStateManager().getStates().iterator();
 
         while(var2.hasNext()) {
@@ -103,31 +104,38 @@ public class WaterproofRedstoneWire extends Block {
     }
 
     private BlockState getPlacementState(BlockView world, BlockState state, BlockPos pos) {
+        // Handle the waterlogged property during block placement
+        FluidState fluidState = world.getFluidState(pos);
+
         boolean bl = isNotConnected(state);
-        state = this.getDefaultWireState(world, (BlockState)this.getDefaultState().with(POWER, (Integer)state.get(POWER)), pos);
+        state = this.getDefaultWireState(world, (BlockState) this.getDefaultState()
+                .with(POWER, (Integer) state.get(POWER))
+                .with(WATERLOGGED, fluidState.getFluid() == Fluids.WATER), pos);
+
         if (bl && isNotConnected(state)) {
             return state;
         } else {
-            boolean bl2 = ((WireConnection)state.get(WIRE_CONNECTION_NORTH)).isConnected();
-            boolean bl3 = ((WireConnection)state.get(WIRE_CONNECTION_SOUTH)).isConnected();
-            boolean bl4 = ((WireConnection)state.get(WIRE_CONNECTION_EAST)).isConnected();
-            boolean bl5 = ((WireConnection)state.get(WIRE_CONNECTION_WEST)).isConnected();
+            boolean bl2 = ((WireConnection) state.get(WIRE_CONNECTION_NORTH)).isConnected();
+            boolean bl3 = ((WireConnection) state.get(WIRE_CONNECTION_SOUTH)).isConnected();
+            boolean bl4 = ((WireConnection) state.get(WIRE_CONNECTION_EAST)).isConnected();
+            boolean bl5 = ((WireConnection) state.get(WIRE_CONNECTION_WEST)).isConnected();
             boolean bl6 = !bl2 && !bl3;
             boolean bl7 = !bl4 && !bl5;
+
             if (!bl5 && bl6) {
-                state = (BlockState)state.with(WIRE_CONNECTION_WEST, WireConnection.SIDE);
+                state = (BlockState) state.with(WIRE_CONNECTION_WEST, WireConnection.SIDE);
             }
 
             if (!bl4 && bl6) {
-                state = (BlockState)state.with(WIRE_CONNECTION_EAST, WireConnection.SIDE);
+                state = (BlockState) state.with(WIRE_CONNECTION_EAST, WireConnection.SIDE);
             }
 
             if (!bl2 && bl7) {
-                state = (BlockState)state.with(WIRE_CONNECTION_NORTH, WireConnection.SIDE);
+                state = (BlockState) state.with(WIRE_CONNECTION_NORTH, WireConnection.SIDE);
             }
 
             if (!bl3 && bl7) {
-                state = (BlockState)state.with(WIRE_CONNECTION_SOUTH, WireConnection.SIDE);
+                state = (BlockState) state.with(WIRE_CONNECTION_SOUTH, WireConnection.SIDE);
             }
 
             return state;
@@ -150,13 +158,30 @@ public class WaterproofRedstoneWire extends Block {
     }
 
     public BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighborState, WorldAccess world, BlockPos pos, BlockPos neighborPos) {
+        // Handle waterlogging when the neighbor state changes
+        if (state.get(WATERLOGGED)) {
+            world.createAndScheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
+        }
+
+        // If the change is from below, return the current state
         if (direction == Direction.DOWN) {
             return state;
-        } else if (direction == Direction.UP) {
+        }
+
+        // If the change is from above, re-evaluate the placement state
+        else if (direction == Direction.UP) {
             return this.getPlacementState(world, state, pos);
-        } else {
+        }
+
+        // For horizontal connections, check and update the connection type
+        else {
             WireConnection wireConnection = this.getRenderConnectionType(world, pos, direction);
-            return wireConnection.isConnected() == ((WireConnection)state.get((Property)DIRECTION_TO_WIRE_CONNECTION_PROPERTY.get(direction))).isConnected() && !isFullyConnected(state) ? (BlockState)state.with((Property)DIRECTION_TO_WIRE_CONNECTION_PROPERTY.get(direction), wireConnection) : this.getPlacementState(world, (BlockState)((BlockState)this.dotState.with(POWER, (Integer)state.get(POWER))).with((Property)DIRECTION_TO_WIRE_CONNECTION_PROPERTY.get(direction), wireConnection), pos);
+            BlockState updatedState = wireConnection.isConnected() == ((WireConnection) state.get(DIRECTION_TO_WIRE_CONNECTION_PROPERTY.get(direction))).isConnected() && !isFullyConnected(state)
+                    ? state.with(DIRECTION_TO_WIRE_CONNECTION_PROPERTY.get(direction), wireConnection)
+                    : this.getPlacementState(world, this.dotState.with(POWER, state.get(POWER)).with(DIRECTION_TO_WIRE_CONNECTION_PROPERTY.get(direction), wireConnection), pos);
+
+            // Ensure the waterlogged property is maintained in the updated state
+            return updatedState.with(WATERLOGGED, state.get(WATERLOGGED));
         }
     }
 
@@ -476,7 +501,7 @@ public class WaterproofRedstoneWire extends Block {
     }
 
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
-        builder.add(new Property[]{WIRE_CONNECTION_NORTH, WIRE_CONNECTION_EAST, WIRE_CONNECTION_SOUTH, WIRE_CONNECTION_WEST, POWER});
+        builder.add(new Property[]{WIRE_CONNECTION_NORTH, WIRE_CONNECTION_EAST, WIRE_CONNECTION_SOUTH, WIRE_CONNECTION_WEST, POWER, WATERLOGGED});
     }
 
     public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
@@ -511,7 +536,12 @@ public class WaterproofRedstoneWire extends Block {
 
     }
 
+    public FluidState getFluidState(BlockState state) {
+        return state.get(WATERLOGGED) ? Fluids.WATER.getStill(false) : super.getFluidState(state);
+    }
+
     static {
+        WATERLOGGED = Properties.WATERLOGGED;
         WIRE_CONNECTION_NORTH = Properties.NORTH_WIRE_CONNECTION;
         WIRE_CONNECTION_EAST = Properties.EAST_WIRE_CONNECTION;
         WIRE_CONNECTION_SOUTH = Properties.SOUTH_WIRE_CONNECTION;

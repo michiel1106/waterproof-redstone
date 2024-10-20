@@ -1,0 +1,6 @@
+{
+    "parent": "waterproof-redstone:block/waterproof_redstone_dust_side",
+    "textures": {
+        "line": "waterproof-redstone:block/redstonedustline1"
+    }
+}

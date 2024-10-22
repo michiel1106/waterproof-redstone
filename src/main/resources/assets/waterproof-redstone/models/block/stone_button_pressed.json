@@ -1,0 +1,6 @@
+{
+  "parent": "waterproof-redstone:block/button_pressed",
+  "textures": {
+    "texture": "waterproof-redstone:block/stone"
+  }
+}

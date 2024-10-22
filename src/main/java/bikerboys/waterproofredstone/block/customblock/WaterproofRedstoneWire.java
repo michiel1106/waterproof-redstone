@@ -40,7 +40,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 import net.minecraft.world.WorldView;
 
-public class WaterproofRedstoneWire extends Block implements Waterloggable {
+public class WaterproofRedstoneWire extends RedstoneWireBlock implements Waterloggable {
     public static final BooleanProperty WATERLOGGED;
 
     public static final EnumProperty<WireConnection> WIRE_CONNECTION_NORTH;
@@ -58,10 +58,13 @@ public class WaterproofRedstoneWire extends Block implements Waterloggable {
     private static final Map<Direction, VoxelShape> DIRECTION_TO_SIDE_SHAPE;
     private static final Map<Direction, VoxelShape> DIRECTION_TO_UP_SHAPE;
     private static final Map<BlockState, VoxelShape> SHAPES;
+
     private static final Vec3d[] COLORS;
+
     private static final float field_31221 = 0.2F;
     private final BlockState dotState;
     private boolean wiresGivePower = true;
+
 
     public WaterproofRedstoneWire(Settings settings) {
         super(settings);
@@ -436,6 +439,7 @@ public class WaterproofRedstoneWire extends Block implements Waterloggable {
 
     private void addPoweredParticles(World world, Random random, BlockPos pos, Vec3d color, Direction direction, Direction direction2, float f, float g) {
         float h = g - f;
+
         if (!(random.nextFloat() >= 0.2F * h)) {
             float i = 0.4375F;
             float j = f + h * random.nextFloat();

@@ -6,6 +6,9 @@ import net.minecraft.block.entity.ComparatorBlockEntity;
 import net.minecraft.block.enums.ComparatorMode;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.fluid.Fluids;
+import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -36,7 +39,7 @@ public class WaterproofComparator extends AbstractRedstoneGateBlock implements B
 
     public WaterproofComparator(AbstractBlock.Settings settings) {
         super(settings);
-        this.setDefaultState((BlockState)((BlockState)((BlockState)((BlockState)this.stateManager.getDefaultState()).with(FACING, Direction.NORTH)).with(POWERED, false)).with(MODE, ComparatorMode.COMPARE));
+        this.setDefaultState((BlockState)((BlockState)((BlockState)((BlockState)this.stateManager.getDefaultState()).with(FACING, Direction.NORTH)).with(POWERED, false)).with(MODE, ComparatorMode.COMPARE).with(WATERLOGGED, false));
     }
 
     protected int getUpdateDelayInternal(BlockState state) {
@@ -46,6 +49,11 @@ public class WaterproofComparator extends AbstractRedstoneGateBlock implements B
     protected int getOutputLevel(BlockView world, BlockPos pos, BlockState state) {
         BlockEntity blockEntity = world.getBlockEntity(pos);
         return blockEntity instanceof ComparatorBlockEntity ? ((ComparatorBlockEntity)blockEntity).getOutputSignal() : 0;
+    }
+
+    public BlockState getPlacementState(ItemPlacementContext ctx) {
+        boolean isWaterlogged = ctx.getWorld().getFluidState(ctx.getBlockPos()).getFluid() == Fluids.WATER;
+        return (BlockState)this.getDefaultState().with(FACING, ctx.getPlayerFacing().getOpposite()).with(WATERLOGGED, isWaterlogged);
     }
 
     private int calculateOutputSignal(World world, BlockPos pos, BlockState state) {
@@ -168,8 +176,13 @@ public class WaterproofComparator extends AbstractRedstoneGateBlock implements B
     }
 
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
-        builder.add(new Property[]{FACING, MODE, POWERED});
+        builder.add(new Property[]{FACING, MODE, POWERED, WATERLOGGED});
     }
+
+    public FluidState getFluidState(BlockState state) {
+        return state.get(WATERLOGGED) ? Fluids.WATER.getStill(false) : super.getFluidState(state);
+    }
+
 
     static {
         MODE = Properties.COMPARATOR_MODE;

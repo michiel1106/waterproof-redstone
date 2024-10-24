@@ -1,6 +1,7 @@
 package bikerboys.waterproofredstone;
 
 import bikerboys.waterproofredstone.block.ModBlocks;
+
 import net.fabricmc.api.ModInitializer;
 
 import net.minecraft.block.Block;
@@ -20,6 +21,8 @@ public class WaterproofRedstone implements ModInitializer {
 
 
 
+
 		ModBlocks.registerModBlocks();
+		
 	}
 }

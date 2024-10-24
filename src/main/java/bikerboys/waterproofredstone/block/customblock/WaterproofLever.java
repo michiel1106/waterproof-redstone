@@ -90,7 +90,7 @@ public class WaterproofLever extends WallMountedBlock {
             Direction direction = var2[var4];
             BlockState blockState;
             if (direction.getAxis() == Direction.Axis.Y) {
-                blockState = (BlockState)((BlockState)this.getDefaultState().with(FACE, direction == Direction.UP ? WallMountLocation.CEILING : WallMountLocation.FLOOR)).with(FACING, ctx.getPlayerFacing());
+                blockState = (BlockState)((BlockState)this.getDefaultState().with(FACE, direction == Direction.UP ? WallMountLocation.CEILING : WallMountLocation.FLOOR)).with(FACING, ctx.getPlayerLookDirection());
             } else {
                 blockState = (BlockState)((BlockState)this.getDefaultState().with(FACE, WallMountLocation.WALL)).with(FACING, direction.getOpposite());
             }

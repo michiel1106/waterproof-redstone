@@ -22,7 +22,9 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldView;
 import org.jetbrains.annotations.Nullable;
 
-public class WaterproofStoneButton extends AbstractButtonBlock implements Waterloggable {
+import javax.swing.*;
+
+public class WaterproofStoneButton extends WallMountedBlock implements Waterloggable {
     public static final BooleanProperty WATERLOGGED;
 
     public static final BooleanProperty POWERED;
@@ -50,12 +52,12 @@ public class WaterproofStoneButton extends AbstractButtonBlock implements Waterl
 
 
     public WaterproofStoneButton(Settings settings) {
-        super(false, settings);
+        super(settings);
         this.setDefaultState((BlockState)((BlockState)((BlockState)((BlockState)this.stateManager.getDefaultState()).with(FACING, Direction.NORTH)).with(POWERED, false)).with(FACE, WallMountLocation.WALL).with(WATERLOGGED, false));
 
     }
 
-@Override
+
     protected SoundEvent getClickSound(boolean powered) {
         return powered ? SoundEvents.BLOCK_STONE_BUTTON_CLICK_ON : SoundEvents.BLOCK_STONE_BUTTON_CLICK_OFF;
     }
@@ -70,7 +72,7 @@ public class WaterproofStoneButton extends AbstractButtonBlock implements Waterl
         super.neighborUpdate(state, world, pos, block, fromPos, notify);
 
         if (state.get(WATERLOGGED)) {
-            world.createAndScheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
+            world.scheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
         }
     }
 
@@ -87,7 +89,8 @@ public class WaterproofStoneButton extends AbstractButtonBlock implements Waterl
         }
 
         // Allow placement on replaceable materials (like fluids or foliage, if that makes sense for your use case)
-        return blockState.getMaterial().isReplaceable();
+        return blockState.isReplaceable();
+
     }
 
     @Nullable
@@ -101,7 +104,7 @@ public class WaterproofStoneButton extends AbstractButtonBlock implements Waterl
             Direction direction = var2[var4];
             BlockState blockState;
             if (direction.getAxis() == Direction.Axis.Y) {
-                blockState = (BlockState)((BlockState)this.getDefaultState().with(FACE, direction == Direction.UP ? WallMountLocation.CEILING : WallMountLocation.FLOOR)).with(FACING, ctx.getPlayerFacing()).with(WATERLOGGED, isWaterlogged);
+                blockState = (BlockState)((BlockState)this.getDefaultState().with(FACE, direction == Direction.UP ? WallMountLocation.CEILING : WallMountLocation.FLOOR)).with(FACING, ctx.getPlayerLookDirection()).with(WATERLOGGED, isWaterlogged);
             } else {
                 blockState = (BlockState)((BlockState)this.getDefaultState().with(FACE, WallMountLocation.WALL)).with(FACING, direction.getOpposite()).with(WATERLOGGED, isWaterlogged);
             }

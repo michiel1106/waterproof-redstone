@@ -4,8 +4,6 @@ import bikerboys.waterproofredstone.block.ModBlocks;
 
 import net.fabricmc.api.ModInitializer;
 
-import net.minecraft.block.Block;
-import net.minecraft.util.registry.RegistryKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

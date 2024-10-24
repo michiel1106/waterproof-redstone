@@ -25,8 +25,8 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockView;
-import net.minecraft.world.TickPriority;
 import net.minecraft.world.World;
+import net.minecraft.world.tick.TickPriority;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -53,7 +53,7 @@ public class WaterproofComparator extends AbstractRedstoneGateBlock implements B
 
     public BlockState getPlacementState(ItemPlacementContext ctx) {
         boolean isWaterlogged = ctx.getWorld().getFluidState(ctx.getBlockPos()).getFluid() == Fluids.WATER;
-        return (BlockState)this.getDefaultState().with(FACING, ctx.getPlayerFacing().getOpposite()).with(WATERLOGGED, isWaterlogged);
+        return (BlockState)this.getDefaultState().with(FACING, ctx.getPlayerLookDirection().getOpposite()).with(WATERLOGGED, isWaterlogged);
     }
 
     private int calculateOutputSignal(World world, BlockPos pos, BlockState state) {
@@ -132,7 +132,7 @@ public class WaterproofComparator extends AbstractRedstoneGateBlock implements B
             int j = blockEntity instanceof ComparatorBlockEntity ? ((ComparatorBlockEntity)blockEntity).getOutputSignal() : 0;
             if (i != j || (Boolean)state.get(POWERED) != this.hasPower(world, pos, state)) {
                 TickPriority tickPriority = this.isTargetNotAligned(world, pos, state) ? TickPriority.HIGH : TickPriority.NORMAL;
-                world.createAndScheduleBlockTick(pos, this, 2, tickPriority);
+                world.scheduleBlockTick(pos, this, 2, tickPriority);
             }
 
         }
